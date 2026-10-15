@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Meal Planner</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <h1>Meal Planner</h1>
+    <nav id="tabs">
+      <button data-tab="today" class="on">Today</button>
+      <button data-tab="dishes">Dishes</button>
+      <button data-tab="plan">Plan</button>
+      <button data-tab="history">History</button>
+    </nav>
+    <button id="theme" class="ghost" title="Theme">Auto</button>
+  </header>
+
+  <main>
+    <section id="today" class="view">
+      <div class="bar today-bar">
+        <div class="seg" id="daytype"></div>
+        <div id="summary" class="summary"></div>
+        <div class="actions">
+          <button id="regen" class="ghost small" title="Regenerate the whole day">↻ New day</button>
+          <button id="accept" class="small" title="Save to history with the current day type">Accept</button>
+        </div>
+      </div>
+      <p class="muted tiny" id="today-meta"></p>
+      <div id="meals"></div>
+    </section>
+
+    <section id="dishes" class="view" hidden>
+      <div class="bar">
+        <div class="filters">
+          <input id="dish-q" type="search" placeholder="Search dishes">
+          <label class="inline-check"><input type="checkbox" id="dish-common"> Common only</label>
+        </div>
+        <div class="actions">
+          <button id="dish-add">Add dish</button>
+          <button id="dish-export" class="ghost">Export</button>
+          <label class="btn ghost">Import<input id="dish-import" type="file" accept=".json,application/json" hidden></label>
+          <button id="dish-reset" class="ghost">Reset</button>
+        </div>
+      </div>
+      <p class="muted" id="dish-meta"></p>
+      <div id="dish-list" class="board"></div>
+    </section>
+
+    <section id="plan" class="view" hidden></section>
+    <section id="history" class="view" hidden></section>
+  </main>
+
+  <dialog id="dish-dialog">
+    <form id="dish-form" method="dialog">
+      <h2 id="dish-form-title">Edit dish</h2>
+      <p class="muted tiny">One dish per entry (e.g. "Upma", not "Upma with eggs").</p>
+      <label>Name <input name="name" required></label>
+      <label>Cuisine <select name="cuisine"></select></label>
+      <label class="inline"><input type="checkbox" name="common"> Common staple (roti, rice, boiled eggs…) — may repeat often</label>
+      <fieldset><legend>Ingredients (exchange units)</legend>
+        <div id="f-items"></div>
+        <button type="button" id="f-add-item" class="ghost small">+ Ingredient</button>
+      </fieldset>
+      <label>Free extras (aromatics, garnish) <input name="extras"></label>
+      <label>Method <textarea name="method" rows="2"></textarea></label>
+      <p id="f-errors" class="error"></p>
+      <div class="actions">
+        <button type="button" id="f-delete" class="ghost danger">Delete</button>
+        <span class="grow"></span>
+        <button type="button" id="f-cancel" class="ghost">Cancel</button>
+        <button type="submit" id="f-save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="data/substitutions.js"></script>
+  <script src="data/plan.js"></script>
+  <script src="data/dishes.js"></script>
+  <script src="engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
