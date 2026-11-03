@@ -2,102 +2,61 @@
 
 A personal daily meal-planning page built on my nutritionist's plan (LevelUp with Lalitha, 25 Aug 2026). Each day you get **one plan**, and you can switch the day type (**Rest / Gym / Cardio**) at any time, even after eating a couple of meals:
 
-- **Dishes**: a flat list of individual dishes, about 3–7 depending on what's picked, e.g. Dal tadka, Roti, Bhindi masala, Masala omelette, Whey shake. Together they use up the day's pool exactly, and you decide how to group and time them. Each card shows the dish, its ingredient quantities, and a swap control (dropdown + ↻). On cardio days, dishes with carbs also show a **cardio carb** selector; the chosen dish (by default the most carb-heavy one) gets the extra carb unit, shown as its final quantities. The choice is kept for the day.
-- **Fixed items** follow the day type:
-  - 1 protein shake (30g whey): every day
-  - 150g Skyr / high-protein Greek yogurt: every day, never inside a dish
-  - 100g banana + 2 dates: gym and cardio
-  - 10g mixed nuts (any): gym and cardio
-  - Fast&Up electrolyte: cardio only
-- **Fruit**, eaten separately and never inside a dish: one fruit from the PDF list (apple, orange, melons, berries, papaya, kiwi, pineapple, peach, mango, guava, grapes). It's 250g on rest/gym days and 200g on cardio days. It rotates day to day, and you can change it with Swap or the dropdown. Banana and chikoo would count at half quantity.
+- **Fixed meal slots**, the same every day: **Breakfast, Lunch, Pre-workout, Post-workout / Snack, Dinner**.
+- **Breakfast, lunch and dinner are pickers** laid out as a grid (one row per component, lined up across meals; on phones and narrow screens it becomes one list per meal, with the day type and meters stuck to the top, New day / Accept in a bar at the bottom, and thumb-sized 44px controls): one dropdown per cell (with a **none** option, except dinner Dal and dinner Veg, which are always 1 unit, and the fixed rows: breakfast carb and the proteins), so you can match the targets yourself. The calorie/macro meters (and each slot's own total) update as you pick. Cooking fat is not a row: every breakfast, lunch and dinner counts a fixed 10ml oil (ghee/butter/olive oil are the same macros) in its totals and the day meters (`mealFat` in `data/plan.js`):
 
-All dishes are vegetarian + egg, with exact quantities. The page shows calories and macros against the plan's targets for the chosen day type, and rotates dishes so they don't repeat often.
+  | Row | Options | Breakfast | Lunch | Dinner |
+  |---|---|---|---|---|
+  | Protein 1 | 4 egg whites · 100g Skyr / Greek yogurt · 2 egg whites · 50g Skyr / Greek yogurt (these two = half a unit); fixed at breakfast (2 egg whites) and dinner (50g Skyr), no other option but none; lunch optional | 2 egg whites | none | 50g Skyr |
+  | Protein 2 | 2 whole eggs · 50g paneer (one meal a day; fixed at lunch: 2 whole eggs, no other option but none; no row at dinner) | none | 2 whole eggs | — |
+  | Carb | 1 unit = 30g rice/oats/atta…, 40g bread, 100g potato…; breakfast: fixed at 50g whole-wheat bread (no other option); lunch: dalia, potato, atta, dosa/idli batter, quinoa or sooji (no rice); dinner: white rice, dalia, potato, quinoa or sooji only | 50g bread | 50g atta (≈1.7 rotis) | 30g white rice (60g on cardio) |
+  | Veg | 100g of: mushroom, broccoli, cauliflower, carrots, onions, beans, bottle gourd (lauki), bitter gourd (karela), ladies finger (bhindi), methi leaves, tori, capsicum, pumpkin; lunch and dinner only (no veg at breakfast); dinner always 1 (no none) | – | beans | bottle gourd (lauki) |
+  | Dal | any dal / legume, 40g raw (dinner only, always 1) | – | – | moong dal |
+  | Nuts | 10g each: mixed nuts · almonds · peanuts · walnuts · cashews · pistachios | gym/cardio: 10g mixed nuts; rest: none | none | none |
+
+  A small badge shows the day total for Protein 1, Protein 2, Carb, Veg and Nuts in exchange units, picked / plan (e.g. Protein 1 1 / 1, Veg 2 / 2, Carb 3.92 / 3.92; Protein 2 counts 1 egg or 25g paneer as 1 unit, so 2 eggs or 50g paneer = 2 / 2). Fruit is a fixed amount, so it has none; Dal is dinner only (always 1 unit, no none), so it has no total either. Nuts are planned on gym and cardio days only (the PDF's post-workout 10g): Nuts 1 / 1 there, 0 / 0 on rest. The badge sits under the row label on desktop (once per row) and under the label in each meal on phones, only where that meal has a pick or a non-none default. It turns red when over and amber when under, and so does the select (again only where that meal has a pick or a non-none default); it never blocks. On phones the sticky top bar lists the off-plan rows (e.g. "Off plan: Nuts +1"), hidden when everything is on plan. A meal shouldn't have both Protein 1 and Protein 2: if you pick both, the two dropdowns turn red (tooltip "Protein 1 and Protein 2 in the same meal"), again without blocking; the defaults never do it, and neither protein arrangement the shuffle uses does either. Lunch and dinner have veg (plan: Veg 2; breakfast has no veg row); dinner's is required, lunch's stays optional on Today but the shuffle always sets it. The carb amount is the slot's PDF amount (dinner doubles on cardio days, the PDF's second roti). Defaults follow the plan with my changes: the 2 whole eggs move from breakfast to lunch, the dal moves from lunch to dinner, the gym/cardio post-workout nuts move to breakfast, the lunch rice becomes 50g atta, the dinner roti becomes 30g white rice (no eggs or atta at dinner), and the dinner Skyr becomes 50g (half the plan's 100g); Protein 1 (2 egg whites at breakfast, 50g Skyr at dinner) and Protein 2 (2 eggs at lunch) are the usual arrangement. **New day** picks it or the swap about 50/50: breakfast 50g paneer (Protein 2, with the bread) and lunch 2 egg whites (Protein 1), dinner unchanged; both keep Protein 1 1 / 1 and Protein 2 2 / 2 with no clash. Each can still be set to none, which just leaves that day total under plan (amber).
+- **Fixed items** by day type: protein shake, 1 scoop (30g whey; post-workout / snack) every day; 100g banana + 2 dates (pre-workout) on gym and cardio days; Fast&Up electrolyte (pre-workout, sip during) on cardio days. They are not shown on Today (no Pre-workout or Post-workout / Snack column) but still count in the day's meters; the Plan tab lists them.
+- **Fruit**, eaten separately: a fixed **250g every day** as two different fruits from the PDF list (apple, orange, melons, berries, papaya, kiwi, pineapple, peach, mango, guava, grapes): 125g at breakfast and 125g at dinner. Each rotates day to day on its own, and you can change either with its dropdown, styled like the other pickers (e.g. "125g apple"; the other slot's fruit is left out, no none). Banana would count at half quantity.
+
+The plan was later updated from the PDF: breakfast whey removed and dinner Skyr 150g → 100g (targets lowered by the same amounts). With the default picks rest (1381 kcal, target 1392) and gym (1576 kcal, target 1587) days are 11 kcal under their targets (2 egg whites + 50g Skyr instead of 2 eggs + 100g Skyr; lunch atta and dinner rice instead of the PDF's rice and roti). Cardio days come to about 1686 kcal (target 1737): the electrolyte replaces the PDF's 73-kcal Tang, and fruit is 250g instead of 200g.
 
 No install, no build step, no internet needed.
 
 ## Open it
 Double-click `index.html`. It opens in any modern browser, on desktop or mobile.
 
-- **Today**: the whole day on one laptop screen, with the dishes as a grid of compact cards and the fixed items + fruit as chips. Flip **Rest / Gym / Cardio** at any time. Your last choice is remembered, and the default is Rest. Use ↻ or the dropdown to swap a dish, **New day** to reroll the whole day, and **Accept** to save it to history with the day type you finally picked. Dishes eaten recently get pushed down the list.
-- **Dishes**: a board with one column per cuisine (North Indian, South Indian, Continental, Basics, plus any you create with **+ New cuisine**). Search filters across columns, **Common only** narrows to staples, and each column's **+ Add** opens the editor preset to that cuisine. Click a card to edit or delete it. Changes are saved in this browser (localStorage). Use **Export** and **Import** to move them as JSON, and **Reset** to go back to `data/dishes.js`.
-- **Plan**: a one-screen reference with the targets per day type, what's the same every day (shake, Skyr and the shared dish pool), only what differs by day type, swap groups and guidelines. The original nutritionist plan is collapsed into one table with a column per day type.
-- **History**: the days you accepted.
+- **Today**: the whole day on one laptop screen, one column per picker meal (breakfast, lunch, dinner) and one row per component (Protein 1, Protein 2, Carb, Veg, Nuts, Dal, Fruit). Flip **Rest / Gym / Cardio** at any time; switching resets the picks to that type's defaults (manual picks are discarded, fruit stays), so every row total is on plan. Your last choice is remembered, and the default is Rest. A new day opens with the default picks; **New day** shuffles them: a random food in every picker and a random spread across meals (where gym-cardio nuts go; the proteins follow the usual or swap arrangement; the breakfast carb and veg meals are fixed), always keeping every row's day total on plan for the current day type (dinner dal stays 1, carb amounts stay per meal, only the food changes), avoiding the last accepted day's picks where possible, plus two new fruits. Protein 1 and Protein 2 never land in the same meal. Calories vary a little with the foods (about 1300–1390 rest, 1490–1580 gym, 1620–1705 cardio). **Accept** saves the day (with your picks) to history with the day type you finally picked.
+- **Plan**: a one-screen reference with the targets per day type, what's the same every day (shake, fruit and each slot's default picks), only what differs by day type, swap groups and guidelines. The original nutritionist plan is collapsed into one table with a column per day type.
+- **History**: the days you accepted, newest first: the date ("Tue, 3 Nov 2026") and day type, the day's kcal and macros, then one line per meal (Breakfast, Lunch, Dinner) listing its picks and fruit; the 10ml oil, shake and pre-workout items are left out. Older saved entries still render (anything without a meal goes on an "Other" line).
 
-## How generation works
-Everything in the PDF's meals except the fixed items is added up into a **daily pool** of exchange units. Fruit is not in the pool: it's the separate fruit item. Rest and gym pools are identical, and cardio only adds C +1, which goes to the chosen cardio-carb dish:
-
-| Day | Pool (units) |
-|---|---|
-| Gym | P 1 · E 2 · O 3 · C 3.92 · L 1 · V 2 |
-| Cardio | P 1 · E 2 · O 3 · C 4.92 · L 1 · V 2 |
-| Rest | P 1 · E 2 · O 3 · C 3.92 · L 1 · V 2 |
-
-**Swap groups** are in `SUB_GROUPS` in `data/substitutions.js`. Every item in a group swaps 1:1 with every other item in it:
+## Swap groups
+**Swap groups** are in `SUB_GROUPS` in `data/substitutions.js`. Every item in a group swaps 1:1 with every other item in it; the pickers list a row's group as its options:
 
 | Group | Interchangeable items (1 unit each) |
 |---|---|
-| P Protein | 30g (1 scoop) whey · 6 egg whites |
+| P Protein | 30g (1 scoop) whey · 4 egg whites · 100g Skyr / high-protein Greek yogurt |
 | C Carbs | 30g raw rice · 30g oats · 30g poha · 30g dalia · 100g potato · 40g bread · 30g wheat flour (atta) · 80g dosa/idli batter · 30g brown rice · 30g quinoa · 30g sooji |
-| E Egg | 1 whole egg · 25g paneer · 1 cheese slice |
+| E Egg | 1 whole egg · 25g paneer |
 | L Dal | 40g raw dal / rajma / chana / chole / besan |
-| V Veg | 100g veg (no avocado, coconut, peas, corn, beetroot, potato) |
+| V Veg | 100g veg (no avocado, coconut, peas, corn, beetroot, potato, spinach, zucchini, cucumber, drumstick) |
 | O Fat | 10ml oil · ghee · butter · olive oil |
-| F Fruit | 100g fruit · 50g banana/chikoo (only for the separate fruit item) |
+| F Fruit | 100g fruit · 50g banana (only for the separate fruit item) |
 
-Nuts, dates, electrolyte, fruit and Skyr are `fixed` groups: they are daily fixed items and never appear in dishes.
+Fruit and nuts are `fixed` groups, not meal exchanges: fruit is its own daily item and nuts their own picker row (not listed under swap groups on the Plan page).
 
-```js
-{ id: 'E', name: 'Egg / paneer / cheese', source: 'Substitution matrix',
-  items: ['egg', 'paneer', 'cheese'] }   // food ids from FOODS; one unit = that food's qty/unit
-```
-
-The generator works in four steps:
-1. Dishes are generated **once per day** on the gym/rest pool.
-2. It picks dishes at random, weighted by recency, until every pool category is covered and no dish would need more than 2× its normal serving. Sometimes it adds one more where servings are still large. A hearty dish covers several categories at once (bisi bele bath: dal + carb + veg + oil), while light items cover one (boiled eggs, toast, a bowl of dal). So the count varies day to day, usually 3–7. There are no duplicates on the same day.
-3. It scales each category across the day so the totals match the pool exactly.
-4. It tries 80 candidate days and keeps the best one. A candidate scores well when it gives variety (dishes eaten recently are penalised; **common** staples like roti, rice, boiled eggs and whey shake only count a quarter, so they can repeat), realistic servings (no dish below 0.5× or above 2× its usual size) and macros close to the PDF for every day type.
-
-**Adding and removing.** ✕ removes a dish, and the remaining dishes in its categories absorb its share (each within 0.5–2× of a normal serving). Anything they can't absorb is shown as an **Unallocated** chip, e.g. "1 dal unit (≈ 40g toor dal)", with 2–3 one-click dishes to add; nothing is added silently. **+ Add dish** (searchable) adds a dish at one normal serving. Other dishes in the same categories shrink to make room, and any pushed below 0.5× is dropped and its share redistributed. If the new dish alone exceeds a category, it's shown as **Over by…** instead of hiding it. Whole eggs, whole egg whites and half-scoop whey steps apply throughout. If the cardio-carb dish is removed, the most carb-heavy remaining dish takes over.
-
-Swapping a dish replaces it with any other dish. If the new dish covers less, dishes are added for whatever is missing. If it covers more, a dish it made redundant may be dropped. Then the quantities are re-split, so the count can change.
-
-Switching the day type only re-scales the cardio-carb dish and changes the fixed items and the fruit amount. Choosing a different cardio-carb dish just moves the extra carbs. It never regenerates the plan, so switching back gives you the identical plan.
-
-## Editing dishes
-Each entry is **one dish**: "Upma", not "Upma with boiled eggs". Names with " + ", " & ", " with " or " and " are rejected; add the parts as separate dishes. Either use the **Dishes** tab or edit `data/dishes.js`:
-
-```js
-{
-  id: 'dal-tadka',
-  name: 'Dal tadka',
-  cuisine: 'North Indian',          // Dishes-board column: North Indian | South Indian | Continental | Basics | your own
-  common: false,                    // true = everyday staple (roti, rice, eggs): may repeat often
-  items: { toor_dal: 1, ghee: 1 },  // foodId: exchange units for one normal serving
-  extras: 'garlic, cumin',          // free aromatics, no macros counted
-  method: 'One-line how-to.',
-}
-```
-
-- Food ids come from `FOODS` in `data/substitutions.js`. Add a new food there, with its category and macros per unit, if you need one.
-- Use realistic one-serving amounts so the scaling stays small.
-- Nuts, fruit, skyr, dates and electrolyte are fixed daily items and can't be used in dishes.
-- Ingredients come only from the vegetarian + egg food list. Banned vegetables are rejected when you save.
-
-If you've edited dishes in the app, those browser copies take priority over `data/dishes.js`. Click **Reset** to load the file again. Editing dishes regenerates today's plan, but the history and rotation data are kept.
+The pickers are `pickers` in `data/plan.js`: per slot, a list of rows `{ id, label, sets: { option: { food: units } }, def }` (`def: ''` = none; `cardio: 2` doubles the row on cardio days).
 
 ## Files
-- `data/plan.js`: day types, targets, fixed items, the original PDF meals, and the derived pool
+- `data/plan.js`: day types, targets, meal slots, fixed items (each in a slot), the pickers and their defaults, fruit, and the original PDF meals
 - `data/substitutions.js`: substitution matrix, exchange units, foods and guidelines
-- `data/dishes.js`: the dish library
-- `engine.js`: the generator (pure JS)
+- `engine.js`: the day builder (pure JS)
 - `app.js`, `index.html`, `styles.css`: the user interface
-- `test/test.js`: run `node test/test.js` to simulate 21 days, each viewed as rest, gym and cardio. It checks:
-  - fixed items are present for each day type
-  - only the chosen cardio-carb dish changes across day types, and day totals stay the same whichever dish is chosen
-  - switching back and forth gives an identical plan
-  - the pool is used up exactly
-  - macros (kcal ±5%, P/C/F ±10%)
-  - only allowed vegetarian + egg foods, no banned vegetables
-  - how often dishes repeat
-  - no combo dish names, and no duplicate dishes in a day
-  - add/remove keeps placed + unallocated − over equal to the pool, with gaps only when the remaining dishes can't absorb them
+- `test/test.js`: run `node test/test.js`. It checks:
+  - swap groups: no nuts or non-veg foods, no cheese, Skyr is a protein swap
+  - every picker option uses allowed foods in practical amounts (whole eggs, whole egg whites), the protein options are exactly as listed above, and the fixed protein rows have only their default (plus none)
+  - default picks give the structure above for rest, gym and cardio (only the dinner carb changes on cardio), fixed items are in their slots
+  - fruit: two different 125g fruits, each rotating (never the same slot fruit two days running) and swappable on its own
+  - row totals: the defaults match the plan for every day type (veg 2, cardio carb +1), and totals follow the picks; dinner Dal and Veg have no none, a fixed 10ml oil per meal (saved fat picks ignored); nuts default at breakfast on gym/cardio only, and an explicit nuts pick holds on every day type
+  - changing a pick changes only that row and the macros by exactly the difference; none removes it
+  - switching day types back and forth gives an identical plan and never changes the base
+  - shuffled days (New day): every row total on plan for each day type, dal only at dinner, veg always at lunch and dinner, two different fruits, never Protein 1 and 2 in one meal (defaults neither; a manual clash is flagged), no eggs at dinner, only each meal's allowed carbs, varied picks that avoid the previous day's

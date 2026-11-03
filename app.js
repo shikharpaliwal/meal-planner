@@ -2,36 +2,28 @@
   var $ = function (s) { return document.querySelector(s); };
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return '&#' + c.charCodeAt(0) + ';'; }); };
   var r0 = function (n) { return Math.round(n); };
-  var r1 = function (n) { return Math.round(n * 10) / 10; };
 
   var store = {
     get: function (k, d) { try { var v = localStorage.getItem('mp.' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
     set: function (k, v) { try { localStorage.setItem('mp.' + k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } },
-    del: function (k) { try { localStorage.removeItem('mp.' + k); } catch (e) { /* ignore */ } },
   };
 
   var TYPES = ['rest', 'gym', 'cardio'];
   var TYPE_LABEL = { rest: 'Rest', cardio: 'Cardio', gym: 'Gym' };
   var today = new Date().toLocaleDateString('en-CA');
-  var knownFoods = function (items) { return Object.keys(items || {}).every(function (id) { return FOODS[id]; }); };
 
-  var dishes = store.get('dishes', null) || DISHES;
   var history = store.get('history', {});
 
-  // One draft per day: a base plan (flat dish list + chosen cardio-carb dish) shared by every day type, plus the chosen type.
-  // Older drafts (per-type plans) or drafts built on a different pool are dropped and regenerated.
-  var poolSig = JSON.stringify(TYPES.map(function (t) { return PLAN.dayTypes[t].pool; }));
+  // One draft per day: a base (picks, fruits) shared by every day type, plus the chosen type.
   var draft = store.get('draft', {});
-  var draftOk = draft && draft.v === 6 && draft.date === today && draft.poolSig === poolSig && draft.base &&
-    Array.isArray(draft.base.dishes) && draft.base.dishes.every(function (x) { return knownFoods(x.items); });
-  if (!draftOk) draft = { v: 6, date: today, poolSig: poolSig, base: null, seen: {} };
+  var draftOk = draft && draft.v === 9 && draft.date === today && draft.base && draft.base.picks;
+  if (!draftOk) draft = { v: 9, date: today, base: null };
   var dayType = store.get('lastType', 'rest');
   if (!PLAN.dayTypes[dayType]) dayType = 'rest';
 
   function ctx(extra) {
-    return Object.assign({ plan: PLAN, foods: FOODS, dishes: dishes, history: history, date: today }, extra);
+    return Object.assign({ plan: PLAN, history: history, date: today }, extra);
   }
-  var dishById = function (id) { return dishes.find(function (d) { return d.id === id; }); };
 
   // ---------- Theme ----------
   var themes = ['auto', 'light', 'dark'];
@@ -47,7 +39,7 @@
   };
 
   // ---------- Tabs ----------
-  var renderers = { today: renderToday, dishes: renderDishes, plan: renderPlan, history: renderHistory };
+  var renderers = { today: renderToday, plan: renderPlan, history: renderHistory };
   $('#tabs').onclick = function (e) {
     var tab = e.target.dataset.tab;
     if (!tab) return;
@@ -58,7 +50,7 @@
 
   // ---------- Today ----------
   function currentBase() {
-    if (!draft.base) { draft.base = MealEngine.generateDay(ctx()); draft.seen = {}; saveDraft(); }
+    if (!draft.base) { draft.base = MealEngine.newDay(ctx()); saveDraft(); }
     return draft.base;
   }
   var currentView = function () { return MealEngine.view(currentBase(), dayType, ctx()); };
@@ -80,10 +72,11 @@
     if (unitWord.length > 2 && n.indexOf(unitWord.replace(/s$/, '')) >= 0) return q.replace(unitWord, parseFloat(q) === 1 || /s$/.test(n) ? n : n + 's');
     return q + ' ' + n;
   };
+  // Foods since removed from the data (in old History entries) show as their id.
   var itemText = function (items) {
-    return Object.keys(items).filter(function (id) { return FOODS[id]; }).map(function (id) { return qtyName(id, items[id]); }).join(' + ');
+    return Object.keys(items).map(function (id) { return FOODS[id] ? qtyName(id, items[id]) : id; }).join(' + ');
   };
-  var FIXED_LABEL = { 'fixed-shake': 'Shake', 'fixed-skyr': 'Skyr', 'fixed-pre': 'Pre-workout', 'fixed-intra': 'Intra', 'fixed-nuts': 'Nuts' };
+  var ROWS = [['protein', 'Protein 1'], ['protein2', 'Protein 2'], ['carb', 'Carb'], ['veg', 'Veg'], ['nuts', 'Nuts'], ['dal', 'Dal'], ['fruit', 'Fruit']];
 
   function renderToday() {
     $('#daytype').innerHTML = TYPES.map(function (t) {
@@ -96,251 +89,80 @@
     $('#today-meta').textContent = history[today] && !accepted ? 'A different version was accepted earlier today.' : '';
     $('#summary').innerHTML = meter('kcal', m.kcal, t.kcal, '') + meter('P', m.p, t.p, 'g') +
       meter('C', m.c, t.c, 'g') + meter('F', m.f, t.f, 'g');
-    var fruitId = Object.keys(day.fruit.items)[0], isCardio = dayType === 'cardio';
-    $('#meals').innerHTML =
-      '<div class="chips today-chips">' + day.fixed.map(function (p) {
-        return '<span class="chip" title="' + esc(p.method || '') + '"><b>' + esc(FIXED_LABEL[p.dishId] || p.name) + '</b> ' + esc(itemText(p.items)) + '</span>';
-      }).join('') +
-      '<span class="chip"><b>Fruit</b> ' + esc(MealEngine.fmtQty(FOODS[fruitId], day.fruit.items[fruitId])) +
-        ' <select data-fruit-pick="1" aria-label="Fruit">' + PLAN.fruitChoices.map(function (id) {
-          return '<option value="' + id + '"' + (id === fruitId ? ' selected' : '') + '>' + esc(FOODS[id].name.toLowerCase()) + '</option>';
-        }).join('') + '</select><button class="icon" data-fruit-swap="1" title="Another fruit">↻</button></span></div>' +
-      '<div class="dish-grid">' + day.dishes.map(function (p, i) {
-        var opts = MealEngine.swapOptions(currentBase(), i, ctx()).map(function (d) {
-          return '<option value="' + esc(d.id) + '"' + (d.id === p.dishId ? ' selected' : '') + '>' + esc(d.name) + '</option>';
-        }).join('');
-        if (opts.indexOf('selected') < 0) opts = '<option selected>' + esc(p.name) + '</option>' + opts;
-        var hasCarb = Object.keys(p.items).some(function (id) { return FOODS[id] && FOODS[id].cat === 'C'; });
-        // The cardio-carb selector only exists on cardio days; the stored choice is kept for when cardio comes back.
-        return '<div class="card meal' + (isCardio && p.cardio ? ' cardio' : '') + '">' +
-          '<div class="pick"><select data-pick="' + i + '" aria-label="Dish">' + opts + '</select>' +
-          '<button class="icon" data-swap="' + i + '" title="Swap dish">↻</button>' +
-          '<button class="icon" data-remove="' + i + '" title="Remove dish">✕</button></div>' +
-          '<div class="muted tiny">' + macroLine(MealEngine.macros(p.items, FOODS)) + '</div>' +
-          renderPart(p) +
-          (isCardio && hasCarb ? '<label class="cardio-pick" title="This dish gets the extra carb unit today"><input type="radio" name="cardio-carb" data-cardio="' +
-            esc(p.dishId) + '"' + (p.cardio ? ' checked' : '') + '> cardio carb</label>' : '') +
-          '</div>';
-      }).join('') +
-      '<div class="card meal add-card"><input list="add-list" data-add="1" placeholder="+ Add dish…" aria-label="Add dish">' +
-        '<datalist id="add-list">' + MealEngine.addOptions(currentBase(), ctx()).map(function (d) {
-          return '<option value="' + esc(d.name) + '">';
-        }).join('') + '</datalist><div class="muted tiny">Others in the same categories shrink to make room.</div></div>' +
-      '</div>' + gapsHtml(day);
+    var fruitIds = day.fruits.map(function (f) { return Object.keys(f.items)[0]; });
+    // Same markup as the picker cells; a slot's list leaves out the other slots' fruits.
+    var fruitPick = function (f) {
+      var fid = Object.keys(f.items)[0], u = f.items[fid];
+      return '<label class="pick-row"><span>Fruit</span><select data-fruit-slot="' + f.slot + '" title="Fruit">' +
+        PLAN.fruitChoices.filter(function (id) { return id === fid || fruitIds.indexOf(id) < 0; }).map(function (id) {
+          return '<option value="' + id + '"' + (id === fid ? ' selected' : '') + '>' + esc(qtyName(id, u)) + '</option>';
+        }).join('') + '</select></label>';
+    };
+    // A grid: one column per slot, one row per component, so the same picker lines up across meals. Cells carry
+    // their column/row (--c/--r); on narrow screens the grid becomes one list ordered slot by slot.
+    var cell = function (c, r, cls, html) { return '<div class="cell ' + cls + '" style="--c:' + c + ';--r:' + r + '">' + html + '</div>'; };
+    var html = cell(1, 1, 'corner', ''), clash = MealEngine.clashes(currentBase(), dayType, ctx());
+    // Row day totals (picked / plan): coloured selects + a count badge on each picker row; off-plan rows also in the sticky bar.
+    var tot = MealEngine.rowTotals(currentBase(), dayType, ctx()), r2 = function (n) { return String(Math.round(n * 100) / 100); };
+    var badge = function (label, x) {
+      return '<span class="cnt ' + st(x) + '" title="' + esc(label) + ' day total: picked / plan">' + r2(x.sel) + '/' + r2(x.exp) + '</span>';
+    };
+    var st = function (x) { return !x ? '' : x.sel > x.exp + 1e-9 ? 'over' : x.sel < x.exp - 1e-9 ? 'under' : 'ok'; };
+    $('#offplan').innerHTML = ROWS.filter(function (rw) { var s = st(tot[rw[0]]); return s === 'over' || s === 'under'; }).map(function (rw) {
+      var d = tot[rw[0]].sel - tot[rw[0]].exp;
+      return '<span class="' + st(tot[rw[0]]) + '">' + esc(rw[1]) + ' ' + (d > 0 ? '+' : '−') + r2(Math.abs(d)) + '</span>';
+    }).join(', ');
+    // Only the picker meals get a column; pre/post fixed items are hidden but still count in the meters.
+    var cols = PLAN.slots.filter(function (sl) { return PLAN.pickers[sl.id]; });
+    cols.forEach(function (sl, k) {
+      var c = k + 2, mine = function (list) { return list.filter(function (p) { return p.slot === sl.id; }); };
+      html += cell(c, 1, 'head', '<h3>' + esc(sl.label) + '</h3>');
+      ROWS.forEach(function (rw, r) {
+        var inner = rw[0] === 'fruit' ? mine(day.fruits).map(fruitPick).join('')
+          : pickerHtml(sl.id, rw[0], clash[sl.id], tot[rw[0]] && { st: st(tot[rw[0]]), badge: badge(rw[1], tot[rw[0]]) });
+        html += cell(c, r + 2, inner ? rw[0] : 'empty', inner);
+      });
+    });
+    // Desktop: the row's day-total badge once, under its label.
+    ROWS.forEach(function (rw, r) { html += cell(1, r + 2, 'label', esc(rw[1]) + (tot[rw[0]] ? badge(rw[1], tot[rw[0]]) : '')); });
+    $('#meals').innerHTML = '<div class="day-grid">' + html + '</div>';
   }
 
-  // Unallocated / over-pool chips (after manual add/remove), with one-click dishes to fill a gap.
-  var EQUIV = { C: 'rice', E: 'egg', P: 'whey', L: 'toor_dal', V: 'mixed_veg', O: 'oil' };
-  function gapText(c, u) {
-    var name = (GROUPS[c] ? GROUPS[c].name.split(' /')[0] : c).toLowerCase(), f = FOODS[EQUIV[c]];
-    return r1(u) + ' ' + name + ' unit' + (u === 1 ? '' : 's') + (f ? ' (≈ ' + qtyName(EQUIV[c], u) + ')' : '');
-  }
-  function gapsHtml(day) {
-    var ua = day.unallocated || {}, ov = day.over || {};
-    var rows = Object.keys(ua).filter(function (c) { return ua[c] > 1e-6; }).map(function (c) {
-      return '<span class="chip warn"><b>Unallocated</b> ' + esc(gapText(c, ua[c])) + ' · add: ' +
-        MealEngine.suggestFor(currentBase(), c, ctx(), 3).map(function (d) {
-          return '<button class="link" data-add-id="' + esc(d.id) + '">' + esc(d.name) + '</button>';
-        }).join(' · ') + '</span>';
-    }).concat(Object.keys(ov).filter(function (c) { return ov[c] > 1e-6; }).map(function (c) {
-      return '<span class="chip warn"><b>Over by</b> ' + esc(gapText(c, ov[c])) + '</span>';
-    }));
-    return rows.length ? '<div class="chips gaps">' + rows.join('') + '</div>' : '';
-  }
-
-  function renderPart(p) {
-    var how = [p.method, p.extras ? 'Free: ' + p.extras : ''].filter(Boolean).join(' · ');
-    return '<div class="part"><ul class="items">' + Object.keys(p.items).filter(function (id) { return FOODS[id]; }).map(function (id) {
-        var f = FOODS[id];
-        return '<li><span>' + esc(short(f)) + '</span><span>' + esc(MealEngine.fmtQty(f, p.items[id])) + '</span></li>';
-      }).join('') + '</ul>' +
-      (how ? '<details><summary>How</summary><div class="muted tiny">' + esc(how) + '</div></details>' : '') + '</div>';
+  // One select for a slot's picker row ('' if the slot has no such row); option labels show today's amounts
+  // (cardio doubles the dinner carb). The inline label only shows on narrow screens. `clash`: row ids that must not
+  // share this meal but do (shown red).
+  // `t`: the row's day total { st, badge }; shown (badge, over/under tint) only where this meal has a pick or a non-none default.
+  function pickerHtml(s, rowId, clash, t) {
+    var r = (PLAN.pickers[s] || []).find(function (x) { return x.id === rowId; });
+    if (!r) return '';
+    var cur = MealEngine.pickOf(currentBase(), s, r, dayType), bad = clash && clash.indexOf(r.id) >= 0;
+    var show = t && (cur !== '' || MealEngine.defOf(r, dayType) !== '');
+    var title = bad ? PLAN.pickers[s].filter(function (x) { return clash.indexOf(x.id) >= 0; }).map(function (x) { return x.label; }).join(' and ') + ' in the same meal' : r.label;
+    return '<label class="pick-row"><span>' + esc(r.label) + (show ? t.badge : '') + '</span><select data-pick-slot="' + s + '" data-pick-row="' + r.id + '" title="' + esc(title) + '" class="' + (bad ? 'clash' : show ? t.st : '') + '">' +
+      (r.required ? '' : '<option value=""' + (cur ? '' : ' selected') + '>none</option>') + Object.keys(r.sets).map(function (opt) {
+        return '<option value="' + opt + '"' + (opt === cur ? ' selected' : '') + '>' + esc(itemText(MealEngine.optionItems(r, opt, dayType))) + '</option>';
+      }).join('') + '</select></label>';
   }
 
   $('#daytype').onclick = function (e) {
-    if (!e.target.dataset.type) return;
-    dayType = e.target.dataset.type; store.set('lastType', dayType); renderToday();
+    var t = e.target.dataset.type;
+    if (!t || t === dayType) return;
+    dayType = t; store.set('lastType', t); draft.base = MealEngine.resetPicks(currentBase()); saveDraft(); renderToday();
   };
-  $('#regen').onclick = function () { draft.base = null; renderToday(); };
+  // New day: random picks on plan for the current day type, avoiding the last accepted day's picks.
+  $('#regen').onclick = function () {
+    var prev = Object.keys(history).filter(function (d) { return d < today; }).sort().pop();
+    draft.base = MealEngine.shuffleDay(dayType, ctx({ prev: history[prev] })); saveDraft(); renderToday();
+  };
   $('#accept').onclick = function () {
     history[today] = currentView(); store.set('history', history); renderToday();
   };
-  $('#meals').onclick = function (e) {
-    var i = e.target.dataset.swap;
-    if (i != null) swap(+i);
-    else if (e.target.dataset.remove != null) edit(MealEngine.removeDish(currentBase(), +e.target.dataset.remove, ctx()));
-    else if (e.target.dataset.addId) edit(MealEngine.addDish(currentBase(), e.target.dataset.addId, ctx()));
-    else if (e.target.dataset.fruitSwap) swapFruit();
-    else if (e.target.dataset.cardio != null) {
-      draft.base = MealEngine.setCardioDish(currentBase(), e.target.dataset.cardio); saveDraft(); renderToday();
-    }
-  };
   $('#meals').onchange = function (e) {
-    var i = e.target.dataset.pick;
-    if (i != null) swap(+i, e.target.value);
-    else if (e.target.dataset.add) {
-      var d = dishes.find(function (x) { return x.name === e.target.value; });
-      if (d) edit(MealEngine.addDish(currentBase(), d.id, ctx()));
-    }
-    else if (e.target.dataset.fruitPick) swapFruit(e.target.value);
+    var t = e.target.dataset;
+    if (t.pickSlot) edit(MealEngine.setPick(currentBase(), t.pickSlot, t.pickRow, e.target.value));
+    else if (t.fruitSlot) edit(MealEngine.setFruit(currentBase(), t.fruitSlot, e.target.value));
   };
   function edit(base) { draft.base = base; saveDraft(); renderToday(); }
-  function swapFruit(forceId) {
-    var base = currentBase(), list = draft.seen.fruit = draft.seen.fruit || [];
-    if (list.indexOf(base.fruit) < 0) list.push(base.fruit);
-    if (list.length >= PLAN.fruitChoices.length - 1) list.length = 0;
-    draft.base = MealEngine.swapFruit(base, ctx({ seen: list, forceId: forceId }));
-    saveDraft(); renderToday();
-  }
-  function swap(i, forceId) {
-    var base = currentBase(), list = draft.seen[i] = draft.seen[i] || [];
-    if (list.indexOf(base.dishes[i].dishId) < 0) list.push(base.dishes[i].dishId);
-    // Once nearly every option has been shown here, start the cycle again.
-    if (list.length >= MealEngine.swapOptions(base, i, ctx()).length - 1) list.length = 0;
-    draft.base = MealEngine.swapDish(base, i, ctx({ seen: list, forceId: forceId }));
-    saveDraft(); renderToday();
-  }
-
-  // ---------- Dishes ----------
-  $('#dish-common').onchange = $('#dish-q').oninput = renderDishes;
-
-  function saveDishes(list) { dishes = list; store.set('dishes', list); draft.base = null; draft.seen = {}; saveDraft(); }
-
-  // Board columns: the default cuisines, any used by a dish, plus empty ones the user created (saved in the browser).
-  var BASE_CUISINES = ['North Indian', 'South Indian', 'Continental', 'Basics'];
-  function cuisines() {
-    var list = BASE_CUISINES.concat(store.get('cuisines', []));
-    dishes.forEach(function (d) { if (d.cuisine && list.indexOf(d.cuisine) < 0) list.push(d.cuisine); });
-    return list;
-  }
-  function newCuisine() {
-    var name = (prompt('New cuisine name (e.g. Indo-Chinese)') || '').trim();
-    if (!name) return null;
-    var extra = store.get('cuisines', []);
-    if (cuisines().indexOf(name) < 0) { extra.push(name); store.set('cuisines', extra); }
-    return name;
-  }
-
-  function renderDishes() {
-    var common = $('#dish-common').checked, q = $('#dish-q').value.toLowerCase();
-    var list = dishes.filter(function (d) {
-      return (!common || d.common) &&
-        (!q || (d.name + ' ' + d.cuisine + ' ' + Object.keys(d.items).map(function (id) { return FOODS[id] ? FOODS[id].name : id; }).join(' ')).toLowerCase().indexOf(q) >= 0);
-    });
-    $('#dish-meta').textContent = list.length + ' of ' + dishes.length + ' dishes' +
-      (store.get('dishes', null) ? ' · customised (saved in this browser)' : ' · from data/dishes.js');
-    $('#dish-list').innerHTML = cuisines().map(function (cu) {
-      var col = list.filter(function (d) { return d.cuisine === cu; });
-      return '<div class="col"><div class="col-head"><h3>' + esc(cu) + ' <span class="muted tiny">' + col.length + '</span></h3>' +
-        '<button class="ghost small" data-new-in="' + esc(cu) + '">+ Add</button></div>' +
-        col.map(function (d) {
-          return '<div class="card dish-card" data-id="' + esc(d.id) + '"><b>' + esc(d.name) + '</b>' + (d.common ? '<span class="tag">common</span>' : '') +
-            '<div class="muted tiny">' + esc(Object.keys(d.items).map(function (id) { return FOODS[id] ? short(FOODS[id]).toLowerCase() : id; }).join(', ')) + '</div></div>';
-        }).join('') + '</div>';
-    }).join('') + '<div class="col col-new"><button class="ghost" data-new-cuisine="1">+ New cuisine</button></div>';
-  }
-  $('#dish-list').onclick = function (e) {
-    if (e.target.dataset.newIn) return openDish(null, e.target.dataset.newIn);
-    if (e.target.dataset.newCuisine) { if (newCuisine()) renderDishes(); return; }
-    var c = e.target.closest('[data-id]');
-    if (c) openDish(dishById(c.dataset.id));
-  };
-  $('#dish-add').onclick = function () { openDish(null, BASE_CUISINES[0]); };
-
-  var foodOptions = SUB_GROUPS.filter(function (g) { return !g.fixed; }).map(function (g) {
-    return '<optgroup label="' + esc(g.id + ' · ' + g.name) + '">' + g.items.map(function (id) {
-      return '<option value="' + id + '">' + esc(FOODS[id].name + ' (' + FOODS[id].qty + ' ' + FOODS[id].unit + '/unit)') + '</option>';
-    }).join('') + '</optgroup>';
-  }).join('');
-
-  var editing = null;
-  function itemRow(id, amt) {
-    var row = document.createElement('div');
-    row.className = 'item-row';
-    row.innerHTML = '<select>' + foodOptions + '</select><input type="number" min="0.05" step="0.05" value="' + (amt || 1) +
-      '"><button type="button" class="ghost" title="Remove">×</button>';
-    if (id) row.querySelector('select').value = id;
-    row.querySelector('button').onclick = function () { row.remove(); };
-    $('#f-items').appendChild(row);
-  }
-  function cuisineSelect(value) {
-    var f = $('#dish-form');
-    f.cuisine.innerHTML = cuisines().map(function (c) { return '<option>' + esc(c) + '</option>'; }).join('') + '<option value="__new">+ New cuisine…</option>';
-    f.cuisine.value = value;
-  }
-  $('#dish-form').cuisine.onchange = function (e) {
-    if (e.target.value !== '__new') return;
-    var name = newCuisine();
-    cuisineSelect(name || BASE_CUISINES[0]);
-  };
-  function openDish(d, cuisine) {
-    editing = d;
-    var f = $('#dish-form');
-    cuisineSelect(d ? d.cuisine : cuisine || BASE_CUISINES[0]);
-    $('#dish-form-title').textContent = d ? 'Edit dish' : 'New dish';
-    f.name.value = d ? d.name : '';
-    f.common.checked = !!(d && d.common);
-    f.extras.value = d ? d.extras || '' : '';
-    f.method.value = d ? d.method || '' : '';
-    $('#f-items').innerHTML = '';
-    if (d) Object.keys(d.items).forEach(function (id) { itemRow(id, d.items[id]); });
-    else itemRow();
-    $('#f-errors').textContent = '';
-    $('#f-delete').hidden = !d;
-    $('#dish-dialog').showModal();
-  }
-  $('#f-add-item').onclick = function () { itemRow(); };
-  $('#f-cancel').onclick = function () { $('#dish-dialog').close(); };
-  $('#f-delete').onclick = function () {
-    if (!confirm('Delete "' + editing.name + '"?')) return;
-    saveDishes(dishes.filter(function (d) { return d !== editing; }));
-    $('#dish-dialog').close(); renderDishes();
-  };
-  $('#dish-form').onsubmit = function (e) {
-    e.preventDefault();
-    var f = e.target, items = {};
-    f.querySelectorAll('.item-row').forEach(function (r) {
-      var id = r.querySelector('select').value;
-      items[id] = (items[id] || 0) + parseFloat(r.querySelector('input').value);
-    });
-    var slug = f.name.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    var d = {
-      id: editing ? editing.id : slug + (dishById(slug) ? '-' + Date.now().toString(36) : ''),
-      name: f.name.value.trim(), items: items, extras: f.extras.value.trim(), method: f.method.value.trim(),
-    };
-    d.cuisine = f.cuisine.value;
-    if (f.common.checked) d.common = true;
-    var errs = MealEngine.validate(d, FOODS, GUIDELINES);
-    if (errs.length) { $('#f-errors').textContent = errs.join('\n'); return; }
-    saveDishes(editing ? dishes.map(function (x) { return x === editing ? d : x; }) : dishes.concat(d));
-    $('#dish-dialog').close(); renderDishes();
-  };
-
-  $('#dish-export').onclick = function () {
-    var a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([JSON.stringify(dishes, null, 2)], { type: 'application/json' }));
-    a.download = 'dishes.json'; a.click();
-    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
-  };
-  $('#dish-import').onchange = function (e) {
-    var file = e.target.files[0];
-    if (!file) return;
-    file.text().then(function (txt) {
-      var list = JSON.parse(txt);
-      if (!Array.isArray(list)) throw new Error('expected a JSON array of dishes');
-      var bad = [];
-      list.forEach(function (d) {
-        MealEngine.validate(d, FOODS, GUIDELINES).forEach(function (er) { bad.push((d.name || d.id) + ': ' + er); });
-      });
-      if (bad.length) throw new Error(bad.slice(0, 10).join('\n'));
-      saveDishes(list); renderDishes(); alert('Imported ' + list.length + ' dishes.');
-    }).catch(function (er) { alert('Import failed:\n' + er.message); });
-    e.target.value = '';
-  };
-  $('#dish-reset').onclick = function () {
-    if (!confirm('Discard your edits and reload dishes from data/dishes.js?')) return;
-    saveDishes(DISHES); store.del('dishes'); renderDishes();
-  };
 
   // ---------- Plan reference ----------
   function renderPlan() {
@@ -350,7 +172,8 @@
     var head = function (first) {
       return '<tr><th>' + first + '</th>' + TYPES.map(function (t) { return '<th class="n">' + TYPE_LABEL[t] + '</th>'; }).join('') + '</tr>';
     };
-    var base = T[PLAN.baseType], cardioDelta = MealEngine.delta(PLAN, 'cardio');
+    var base = T.gym;
+    var defItems = function (rw, t) { var d = MealEngine.defOf(rw, t); return d ? MealEngine.optionItems(rw, d, t) : {}; };
 
     // 1. Targets
     var targets = '<div class="card"><h2>Daily targets</h2><table>' +
@@ -358,16 +181,18 @@
       TYPES.map(function (t) { var g = T[t].target; return row([TYPE_LABEL[t], g.kcal, g.p + 'g', g.c + 'g', g.f + 'g']); }).join('') +
       '</table><p class="muted tiny">' + esc(PLAN.source) + '. ' + esc(PLAN.notes.join(' ')) + '</p></div>';
 
-    // 2. Every day: shared meal pool + fixed items common to all day types
+    // 2. Every day: fixed items common to all day types, fruit, and each slot's default picks
     var everyFixed = base.fixed.filter(function (f) { return TYPES.every(function (t) { return T[t].fixed.some(function (x) { return x.id === f.id; }); }); });
     var every = '<div class="card"><h2>Every day</h2><table class="kv">' +
       everyFixed.map(function (f) {
-        return row(['<b>' + esc(FIXED_LABEL['fixed-' + f.id] || f.name) + '</b>', esc(itemText(f.items))]);
+        var sl = PLAN.slots.find(function (x) { return x.id === f.slot; });
+        return row(['<b>' + esc(f.name) + '</b> <span class="muted">' + esc(sl.label.toLowerCase()) + '</span>', esc(itemText(f.items))]);
       }).join('') +
-      '<tr><td colspan="2" class="muted tiny">The day\'s dishes share this pool:</td></tr>' +
-      Object.keys(base.pool).map(function (c) {
-        return row(['<b>' + esc(GROUPS[c].name.split(' /')[0]) + '</b> <span class="muted">' + r1(base.pool[c]) + ' u</span>',
-          esc(Object.keys(base.poolFoods).filter(function (id) { return FOODS[id].cat === c; }).map(function (id) { return qtyName(id, base.poolFoods[id]); }).join(' + '))]);
+      row(['<b>Fruit</b> <span class="muted">two different, eaten separately</span>', esc(MealEngine.fmtQty(FOODS.apple, PLAN.fruitUnits / PLAN.fruitSlots.length)) +
+        ' each at ' + esc(PLAN.fruitSlots.join(' and '))]) +
+      '<tr><td colspan="2" class="muted tiny">Default picks (change them on Today; each swaps within its group):</td></tr>' +
+      PLAN.slots.filter(function (sl) { return PLAN.pickers[sl.id]; }).map(function (sl) {
+        return row(['<b>' + esc(sl.label) + '</b>', esc(PLAN.pickers[sl.id].filter(function (rw) { return rw.def; }).map(function (rw) { return itemText(defItems(rw, 'rest')); }).join(' + '))]);
       }).join('') + '</table></div>';
 
     // 3. Differences by day type (only what changes)
@@ -376,15 +201,14 @@
     var diffs = '<div class="card"><h2>Differences by day type</h2><table>' + head('') +
       Object.keys(varying).map(function (id) {
         var f = varying[id];
-        return row(['<b>' + esc(FIXED_LABEL['fixed-' + id] || f.name) + '</b> <span class="muted">' + esc(itemText(f.items)) + '</span>']
+        return row(['<b>' + esc(f.name) + '</b> <span class="muted">' + esc(itemText(f.items)) + '</span>']
           .concat(TYPES.map(function (t) { return T[t].fixed.some(function (x) { return x.id === id; }) ? '✓' : '<span class="muted">–</span>'; })));
       }).join('') +
-      row(['<b>Fruit</b> <span class="muted">one, eaten separately</span>'].concat(TYPES.map(function (t) { return MealEngine.fmtQty(FOODS.apple, T[t].fruitUnits); }))) +
-      Object.keys(cardioDelta).map(function (c) {
-        return row(['<b>Cardio carb</b> <span class="muted">one chosen dish, ' + esc(GROUPS[c].name.toLowerCase()) + '</span>'].concat(TYPES.map(function (t) {
-          var d = MealEngine.delta(PLAN, t)[c];
-          return d ? (d > 0 ? '+' : '') + r1(d) + ' unit' : '<span class="muted">–</span>';
-        })));
+      PLAN.slots.map(function (sl) {
+        return (PLAN.pickers[sl.id] || []).filter(function (rw) { return rw.cardio || rw.defByType; }).map(function (rw) {
+          return row(['<b>' + esc(sl.label + ' ' + rw.label.toLowerCase()) + '</b> <span class="muted">default pick</span>']
+            .concat(TYPES.map(function (t) { return esc(itemText(defItems(rw, t))) || '<span class="muted">–</span>'; })));
+        }).join('');
       }).join('') + '</table></div>';
 
     // 4. Swap groups (once); 5. guidelines
@@ -422,15 +246,28 @@
   }
 
   // ---------- History ----------
+  // "Tue, 3 Nov 2026"
+  var fmtDate = function (iso) {
+    var d = new Date(iso + 'T00:00:00');
+    return isNaN(d) ? iso : d.toLocaleDateString('en-GB', { weekday: 'short' }) + ', ' + d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
   function renderHistory() {
     var dates = Object.keys(history).sort().reverse();
     $('#history').innerHTML = (dates.length ? '' : '<p class="muted">No accepted plans yet. Accept a plan on the Today tab to start building variety history.</p>') +
       dates.map(function (dt) {
-        var d = history[dt], m = MealEngine.dayMacros(d, FOODS);
-        return '<div class="card"><div class="meal-head"><h2>' + esc(dt) + ' · ' + esc(TYPE_LABEL[d.dayType] || d.dayType) + '</h2><span class="muted">' + macroLine(m) + '</span></div><ul class="items">' +
-          '<li><span>Dishes</span><span>' + esc(d.dishes.map(function (p) { return p.name; }).join(', ')) + '</span></li>' + (d.fruit ? '<li><span>Fruit</span><span>' + esc(Object.keys(d.fruit.items).map(function (id) {
-            return FOODS[id] ? FOODS[id].name + ' ' + MealEngine.fmtQty(FOODS[id], d.fruit.items[id]) : id;
-          }).join('')) + '</span></li>' : '') + '</ul><button class="ghost small danger" data-del="' + esc(dt) + '">Remove</button></div>';
+        var d = history[dt], m = MealEngine.dayMacros(d, FOODS), fr = MealEngine.fruitParts(d);
+        // Per meal: picks then fruit, without the 10ml oil; fixed items (shake, pre-workout) are left out. Old entries:
+        // a fruit or dish without a slot goes on its own line.
+        var parts = d.dishes.concat(fr), lines = PLAN.slots.map(function (sl) { return [sl.label, parts.filter(function (p) { return p.slot === sl.id; })]; })
+          .concat([['Other', parts.filter(function (p) { return !PLAN.slots.some(function (sl) { return sl.id === p.slot; }); })]]);
+        var text = function (p) {
+          var items = Object.assign({}, p.items); delete items.oil;
+          return p.row || p.dishId && /^fruit-/.test(p.dishId) ? itemText(items) : p.name;
+        };
+        return '<div class="card"><div class="meal-head"><h2>' + esc(fmtDate(dt)) + ' · ' + esc(TYPE_LABEL[d.dayType] || d.dayType) + '</h2><span class="muted">' + macroLine(m) + '</span></div><ul class="items">' +
+          lines.filter(function (l) { return l[1].length; }).map(function (l) {
+            return '<li><span>' + esc(l[0]) + '</span><span>' + esc(l[1].map(text).filter(Boolean).join(' · ')) + '</span></li>';
+          }).join('') + '</ul><button class="ghost small danger" data-del="' + esc(dt) + '">Remove</button></div>';
       }).join('') + (dates.length ? '<button id="clear-history" class="ghost danger">Clear all history</button>' : '');
   }
   $('#history').onclick = function (e) {

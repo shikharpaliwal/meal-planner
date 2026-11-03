@@ -21,8 +21,6 @@ h1 { font-size: 18px; margin: 0; }
 h2 { font-size: 17px; margin: 0 0 8px; }
 h3 { font-size: 15px; margin: 0; }
 .muted { color: var(--muted); font-size: 13px; }
-.error { color: var(--bad); font-size: 13px; white-space: pre-line; }
-.grow { flex: 1; }
 
 .top { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
   padding: 10px 16px; background: var(--card); border-bottom: 1px solid var(--line); }
@@ -30,18 +28,17 @@ h3 { font-size: 15px; margin: 0; }
 #tabs button { background: none; color: var(--muted); border: 0; padding: 6px 10px; border-radius: 8px; }
 #tabs button.on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
 
-button, .btn { font: inherit; font-size: 14px; border: 1px solid var(--accent); background: var(--accent); color: #fff;
+button { font: inherit; font-size: 14px; border: 1px solid var(--accent); background: var(--accent); color: #fff;
   padding: 7px 14px; border-radius: 10px; cursor: pointer; white-space: nowrap; }
-button.ghost, .btn.ghost { background: transparent; color: var(--accent); }
+button.ghost { background: transparent; color: var(--accent); }
 button.small { padding: 3px 10px; font-size: 13px; }
 button.danger { color: var(--bad); border-color: var(--bad); }
 button:disabled { opacity: .5; cursor: default; }
-input, select, textarea { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line);
+select { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line);
   border-radius: 8px; padding: 6px 8px; width: 100%; }
 
 .bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.actions, .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-.filters input { width: auto; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .seg { display: inline-flex; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 3px; }
 .seg button { background: none; border: 0; color: var(--text); padding: 7px 16px; border-radius: 9px; }
 .seg button.on { background: var(--accent); color: #fff; }
@@ -56,9 +53,6 @@ input, select, textarea { font: inherit; color: var(--text); background: var(--b
 .meter.warn .fill { background: var(--warn); }
 
 .meal-head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; flex-wrap: wrap; }
-.part { border-top: 1px dashed var(--line); padding-top: 10px; margin-top: 10px; }
-.part:first-of-type { border-top: 0; }
-.tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); margin-left: 6px; vertical-align: middle; }
 ul.items { list-style: none; padding: 0; margin: 6px 0; }
 ul.items li { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; }
 ul.items li span:last-child { color: var(--muted); white-space: nowrap; }
@@ -70,25 +64,13 @@ td.n, th.n { text-align: right; white-space: nowrap; }
 tr.total td { font-weight: 600; }
 .scroll { overflow-x: auto; }
 
-dialog { border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); color: var(--text);
-  width: min(560px, calc(100% - 32px)); padding: 18px; }
-dialog::backdrop { background: rgb(0 0 0 / .4); }
-form label { display: block; margin: 8px 0; font-size: 13px; color: var(--muted); }
-form label.inline { display: flex; gap: 8px; align-items: center; }
-form label.inline input { width: auto; }
-fieldset { border: 1px solid var(--line); border-radius: 10px; margin: 10px 0; padding: 8px 10px; }
-legend { font-size: 13px; color: var(--muted); }
-.item-row { display: grid; grid-template-columns: 1fr 80px 32px; gap: 6px; margin-bottom: 6px; }
-.item-row button { padding: 0; }
 td:first-child { overflow-wrap: anywhere; }
 @media (max-width: 560px) {
   #tabs { order: 3; flex-basis: 100%; }
   .top h1 { flex: 1; }
 }
-.group { padding: 10px 0; border-top: 1px solid var(--line); }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { font-size: 13px; padding: 3px 10px; border-radius: 99px; background: var(--accent-soft); color: var(--text); }
-.card.cardio { border-color: var(--accent); }
 
 /* Compact Today: one laptop screen. */
 .tiny { font-size: 12px; }
@@ -96,26 +78,23 @@ td:first-child { overflow-wrap: anywhere; }
 .today-bar .seg button { padding: 5px 12px; font-size: 14px; }
 #today-meta:empty { display: none; }
 #today-meta { margin: 0 0 6px; }
-.today-chips { margin: 0 0 10px; }
-.today-chips .chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; }
-.today-chips select { width: auto; padding: 1px 4px; font-size: 12px; background: transparent; border: 0; color: var(--text); font-weight: 600; }
-button.icon { border: 0; background: transparent; color: var(--accent); padding: 0 4px; font-size: 15px; line-height: 1; }
-button.icon:hover { color: var(--text); }
-.dish-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; align-items: start; }
-.card.meal { padding: 10px 12px; margin: 0; }
-.card.meal .cardio-pick { margin-top: 4px; }
-.cardio-pick { font-size: 12px; color: var(--muted); display: inline-flex; gap: 4px; align-items: center; cursor: pointer; }
-.cardio-pick input { width: auto; margin: 0; accent-color: var(--accent); }
-.card.meal.cardio .cardio-pick { color: var(--accent); font-weight: 600; }
-.pick { display: flex; gap: 4px; align-items: center; margin: 0 0 2px; }
-.pick select { font-weight: 600; padding: 4px 6px; font-size: 14px; }
-.card.meal .part { margin-top: 4px; padding-top: 4px; }
-.card.meal ul.items { margin: 2px 0; font-size: 13px; }
-.card.meal ul.items li { padding: 1px 0; line-height: 1.35; }
-details summary { font-size: 12px; color: var(--accent); cursor: pointer; }
-details { margin-top: 2px; }
+/* Today: a grid with one column per slot and one row per component; cells place themselves via --c / --r. */
+.day-grid { display: grid; grid-template-columns: 76px repeat(3, minmax(0, 1fr)); gap: 6px 10px; align-items: center; }
+.day-grid .cell { grid-column: var(--c); grid-row: var(--r); min-width: 0; }
+.day-grid .head { align-self: end; padding-bottom: 2px; border-bottom: 1px solid var(--line); }
+.day-grid .head h3 { font-size: 14px; }
+.day-grid .label { font-size: 12px; color: var(--muted); }
+.pick-row > span { display: none; }
+.pick-row select { width: 100%; padding: 3px 4px; font-size: 13px; color: var(--text); }
+.pick-row select.clash { border-color: var(--bad); color: var(--bad); font-weight: 600; }
 @media (max-width: 900px) {
-  .dish-grid { grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 8px; }
+  /* One list, slot by slot: header, then its non-empty cells with inline labels. */
+  .day-grid { display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
+  .day-grid .cell { order: calc(var(--c) * 20 + var(--r)); }
+  .day-grid .corner, .day-grid .label, .day-grid .empty { display: none; }
+  .day-grid .head { margin-top: 8px; align-self: stretch; }
+  .pick-row { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 6px; align-items: center; font-size: 12px; color: var(--muted); }
+  .pick-row > span { display: inline; }
   .summary { order: 3; flex-basis: 100%; }
 }
 .meter > span { display: block; overflow: hidden; text-overflow: ellipsis; }
@@ -127,31 +106,53 @@ details { margin-top: 2px; }
 #plan h2 { font-size: 15px; margin-bottom: 4px; }
 #plan table { font-size: 12.5px; }
 #plan th, #plan td { padding: 2px 6px; }
-#plan tr.sub td { color: var(--muted); border-bottom-color: var(--line); }
-#plan .chips { gap: 4px; margin-top: 3px; }
+#plan tr.sub td { color: var(--muted); }
 #plan p.tiny { margin: 6px 0 0; }
 ul.tight { margin: 0; padding-left: 18px; font-size: 13px; }
-details.card > summary { cursor: pointer; font-size: 14px; color: var(--text); }
+details.card { margin-top: 2px; }
+details.card > summary { cursor: pointer; font-size: 14px; }
 @media (max-width: 900px) { .plan-grid { grid-template-columns: 1fr; } }
 #plan table.kv td:first-child { white-space: nowrap; }
-#plan table.kv td.n { text-align: left; }
-#plan .group { display: flex; flex-wrap: wrap; gap: 3px 4px; align-items: center; padding: 3px 0; border-top: 0; font-size: 13px; }
+#plan table.kv td.n { text-align: left; white-space: normal; }
+#plan .group { display: flex; flex-wrap: wrap; gap: 3px 4px; align-items: center; padding: 3px 0; font-size: 13px; }
 #plan .group > b { margin-right: 4px; }
 #plan .chip { font-size: 11.5px; padding: 0 7px; }
-.add-card { border-style: dashed; display: flex; flex-direction: column; gap: 4px; }
-.add-card input { font-size: 14px; }
-.chips.gaps { margin-top: 10px; }
-.chip.warn { background: color-mix(in srgb, var(--warn) 18%, transparent); }
-button.link { border: 0; background: none; color: var(--accent); padding: 0; font-size: 12px; text-decoration: underline; }
 
-/* Dishes board */
-.board { display: flex; gap: 10px; overflow-x: auto; align-items: flex-start; padding-bottom: 8px; }
-.board .col { flex: 1 0 230px; min-width: 230px; background: color-mix(in srgb, var(--line) 35%, transparent); border-radius: var(--radius); padding: 8px; }
-.board .col-new { flex: 0 0 150px; min-width: 150px; background: none; border: 1px dashed var(--line); display: flex; justify-content: center; }
-.col-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-.col-head h3 { font-size: 14px; }
-.dish-card { padding: 8px 10px; margin-bottom: 6px; cursor: pointer; }
-.dish-card:hover { border-color: var(--accent); }
-.dish-card .tag { margin-left: 6px; }
-.inline-check { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); white-space: nowrap; }
-.inline-check input { width: auto; }
+
+/* Phone: no page side-scroll, 44px thumb targets, 16px selects (no iOS zoom), meters + day type stuck to the top,
+   New day / Accept in a bar at the bottom. */
+.plan-grid > div { min-width: 0; }
+#plan .card { overflow-x: auto; }
+@media (max-width: 900px) {
+  .top { position: static; }
+  .today-bar { position: sticky; top: 0; z-index: 4; background: var(--bg); margin: -12px -16px 6px; padding: 8px 16px 6px;
+    border-bottom: 1px solid var(--line); }
+  .today-bar .seg { flex: 1; }
+  .today-bar .seg button { flex: 1; }
+  .today-bar .actions { position: fixed; z-index: 6; left: 0; right: 0; bottom: 0; padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
+    background: var(--card); border-top: 1px solid var(--line); }
+  .today-bar .actions button { flex: 1; }
+  #today { padding-bottom: 72px; }
+  button, .seg button, .today-bar .seg button, button.small, #tabs button { min-height: 44px; font-size: 16px; }
+  select, .pick-row select { min-height: 44px; font-size: 16px; }
+  .pick-row { grid-template-columns: 76px minmax(0, 1fr); }
+}
+
+/* Off plan: selects tinted (red over, amber under; the protein clash keeps its own red text), a count badge per picker
+   row (phone), and a line of off-plan rows in the sticky bar (phone, hidden when all on plan). */
+.pick-row select.over { border: 2px solid var(--bad); background: color-mix(in srgb, var(--bad) 12%, var(--bg)); }
+.pick-row select.under { border: 2px solid var(--warn); background: color-mix(in srgb, var(--warn) 12%, var(--bg)); }
+.cnt { display: block; width: max-content; margin-top: 2px; font-size: 11px; font-weight: 600; line-height: 1.4; white-space: nowrap;
+  padding: 0 5px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); }
+.cnt.over { background: var(--bad); color: var(--card); }
+.cnt.under { background: var(--warn); color: var(--card); }
+.offplan { display: none; }
+@media (max-width: 900px) {
+  .offplan:not(:empty) { display: block; order: 4; flex-basis: 100%; font-size: 13px; font-weight: 600; }
+  .offplan:not(:empty)::before { content: 'Off plan: '; color: var(--muted); font-weight: 400; }
+  .offplan .over { color: var(--bad); }
+  .offplan .under { color: var(--warn); }
+}
+/* History entries: long meal / fruit lists wrap inside the card. */
+ul.items li span:first-child { flex: none; width: 80px; }
+ul.items li span:last-child { white-space: normal; overflow-wrap: anywhere; min-width: 0; flex: 1; text-align: left; }
