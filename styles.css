@@ -132,7 +132,7 @@ details.card > summary { cursor: pointer; font-size: 14px; }
   .today-bar .actions { position: fixed; z-index: 6; left: 0; right: 0; bottom: 0; padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
     background: var(--card); border-top: 1px solid var(--line); }
   .today-bar .actions button { flex: 1; }
-  #today { padding-bottom: 72px; }
+  #today { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
   button, .seg button, .today-bar .seg button, button.small, #tabs button { min-height: 44px; font-size: 16px; }
   select, .pick-row select { min-height: 44px; font-size: 16px; }
   .pick-row { grid-template-columns: 76px minmax(0, 1fr); }
